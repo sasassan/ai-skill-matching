@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { TrendingUp, Star, Package, DollarSign, Briefcase } from "lucide-react"
+import { TrendingUp, Star, Package, DollarSign, Briefcase, Lightbulb } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,11 +9,13 @@ import {
   transactions,
   requests,
 } from "@/lib/demo-data"
+import { discoverOpportunities } from "@/lib/ai"
 
-export default function CraftsmanDashboardPage() {
+export default async function CraftsmanDashboardPage() {
   const profile = craftsmanProfiles[0]
   const revenue = transactions.reduce((sum, tx) => sum + tx.amount, 0)
   const recommended = requests.filter((r) => r.status === "matching").slice(0, 3)
+  const opportunities = await discoverOpportunities(profile, recommended)
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -125,6 +127,32 @@ export default function CraftsmanDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="rounded-2xl">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            <CardTitle className="font-serif">AIが発掘したあなたの対応可能案件</CardTitle>
+          </div>
+          <CardDescription>
+            あなたの技能なら、以下の案件にも対応できる可能性があります。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {opportunities.map((opp) => (
+            <div key={opp.requestId} className="rounded-xl border p-4">
+              <p className="font-medium">{opp.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{opp.reason}</p>
+              <Button size="sm" variant="outline" asChild className="mt-3">
+                <Link href={`/craftsman/jobs/${opp.requestId}`}>詳細を見る</Link>
+              </Button>
+            </div>
+          ))}
+          {opportunities.length === 0 && (
+            <p className="text-sm text-muted-foreground">現在、AIが発掘した追加案件はありません。</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

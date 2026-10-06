@@ -1,16 +1,31 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, Check } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Check, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { notifications as initialNotifications, type Notification } from "@/lib/demo-data"
+import { notifications as initialNotifications, type Notification, requests, craftsmanProfiles } from "@/lib/demo-data"
+import { reverseMatch, type ReverseMatchRecommendation } from "@/lib/ai"
 import { formatDate } from "@/lib/utils"
+import Link from "next/link"
 
 export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>(initialNotifications)
+  const [recommendations, setRecommendations] = useState<ReverseMatchRecommendation[]>([])
+  const [loadingRecs, setLoadingRecs] = useState(true)
+
+  useEffect(() => {
+    const profile = craftsmanProfiles[0]
+    const openRequests = requests.filter((r) => r.status === "matching")
+    reverseMatch(profile, openRequests)
+      .then((recs) => {
+        setRecommendations(recs)
+        setLoadingRecs(false)
+      })
+      .catch(() => setLoadingRecs(false))
+  }, [])
 
   const unreadCount = items.filter((n) => !n.read).length
 
@@ -37,6 +52,40 @@ export default function NotificationsPage() {
             すべて既読にする
           </Button>
         )}
+      </div>
+
+      <div className="mb-8">
+        <Card className="rounded-2xl border-primary/20 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle className="font-serif">AI逆マッチング通知</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loadingRecs ? (
+              <p className="text-sm text-muted-foreground">AIがあなたに適した新規案件を探しています...</p>
+            ) : (
+              <>
+                {recommendations.map((rec) => (
+                  <div key={rec.requestId} className="rounded-xl border bg-background p-4">
+                    <div className="mb-1 flex items-center gap-2">
+                      <CardTitle className="font-serif text-base">{rec.title}</CardTitle>
+                      <Badge variant="default">推薦スコア {rec.score}点</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                    <Button size="sm" variant="outline" asChild className="mt-3">
+                      <Link href={`/craftsman/jobs/${rec.requestId}`}>詳細を見る</Link>
+                    </Button>
+                  </div>
+                ))}
+                {recommendations.length === 0 && (
+                  <p className="text-sm text-muted-foreground">現在、新しいAI推薦案件はありません。</p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-4">

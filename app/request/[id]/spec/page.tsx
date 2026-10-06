@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/status-badge"
 import { getRequestById } from "@/lib/demo-data"
+import { generateSpecification } from "@/lib/ai"
 
 export default async function RequestSpecPage({
   params,
@@ -42,6 +43,8 @@ export default async function RequestSpecPage({
     deadline: "-",
     notes: "",
   }
+
+  const markdown = await generateSpecification(request.description, spec)
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-10">
@@ -145,6 +148,11 @@ export default async function RequestSpecPage({
               defaultValue={spec.notes}
               className="resize-none rounded-xl"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>AI生成仕様書（Markdown）</Label>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border bg-muted p-4 text-sm">{markdown}</pre>
           </div>
 
           <div className="flex flex-col gap-3 pt-4 sm:flex-row">
