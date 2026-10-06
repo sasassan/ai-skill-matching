@@ -1,8 +1,14 @@
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { transactions } from "@/lib/demo-data"
-import { formatDate } from "@/lib/utils"
+import {
+  transactions,
+  getEscrowForTransaction,
+  getTransactionCraftsmanName,
+} from "@/lib/demo-data"
+import { formatDate, formatCurrency } from "@/lib/utils"
+import { CreditCard } from "lucide-react"
 
 const steps: { key: string; label: string }[] = [
   { key: "contracted", label: "受注" },
@@ -25,6 +31,7 @@ export default function CraftsmanOrdersPage() {
         {transactions.map((tx) => {
           const activeIndex = steps.findIndex((s) => s.key === tx.status)
           const currentIndex = activeIndex >= 0 ? activeIndex : -1
+          const escrow = getEscrowForTransaction(tx.id)
 
           return (
             <Card key={tx.id} className="rounded-2xl">
@@ -32,10 +39,15 @@ export default function CraftsmanOrdersPage() {
                 <div>
                   <CardTitle className="font-serif text-base">{tx.title}</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    依頼者: {tx.craftsmanName}
+                    依頼者: {getTransactionCraftsmanName(tx)}
                   </p>
                 </div>
-                <Badge variant="default">¥{tx.amount.toLocaleString()}</Badge>
+                <div className="flex items-center gap-2">
+                  {escrow && escrow.status === "held" && (
+                    <CreditCard className="h-4 w-4 text-primary" />
+                  )}
+                  <Badge variant="default">{formatCurrency(tx.amount)}</Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -68,8 +80,8 @@ export default function CraftsmanOrdersPage() {
                   <p className="text-xs text-muted-foreground">
                     更新: {formatDate(tx.updatedAt)}
                   </p>
-                  <Button size="sm" variant="outline">
-                    ステータス更新
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/craftsman/orders/${tx.id}`}>詳細・操作</Link>
                   </Button>
                 </div>
               </CardContent>

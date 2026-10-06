@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { FileText } from "lucide-react"
+import { FileText, CreditCard } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,8 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { StatusBadge } from "@/components/status-badge"
-import { transactions } from "@/lib/demo-data"
-import { formatDate } from "@/lib/utils"
+import {
+  transactions,
+  getEscrowForTransaction,
+  getTransactionCraftsmanName,
+} from "@/lib/demo-data"
+import { formatDate, formatCurrency } from "@/lib/utils"
 
 export default function TransactionsPage() {
   return (
@@ -45,25 +49,36 @@ export default function TransactionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium">{tx.title}</TableCell>
-                  <TableCell>{tx.craftsmanName}</TableCell>
-                  <TableCell>¥{tx.amount.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={tx.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(tx.updatedAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <ActionButton status={tx.status} requestId={tx.requestId} />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {transactions.map((tx) => {
+                const escrow = getEscrowForTransaction(tx.id)
+                return (
+                  <TableRow key={tx.id}>
+                    <TableCell className="font-medium">{tx.title}</TableCell>
+                    <TableCell>{getTransactionCraftsmanName(tx)}</TableCell>
+                    <TableCell>{formatCurrency(tx.amount)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <StatusBadge status={tx.status} />
+                        {escrow && escrow.status === "held" && (
+                          <CreditCard className="h-3.5 w-3.5 text-primary" />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(tx.updatedAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ActionButton transactionId={tx.id} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
               {transactions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-muted-foreground"
+                  >
                     取引はありません。
                   </TableCell>
                 </TableRow>
@@ -77,32 +92,13 @@ export default function TransactionsPage() {
 }
 
 function ActionButton({
-  status,
-  requestId,
+  transactionId,
 }: {
-  status: (typeof transactions)[number]["status"]
-  requestId: string
+  transactionId: string
 }) {
-  if (status === "quoted") {
-    return (
-      <Button size="sm" asChild>
-        <Link href={`/request/${requestId}/messages`}>見積を確認</Link>
-      </Button>
-    )
-  }
-  if (status === "contracted" || status === "in_progress") {
-    return (
-      <Button size="sm" variant="outline">
-        進捗を確認
-      </Button>
-    )
-  }
-  if (status === "delivered") {
-    return <Button size="sm">受取確認</Button>
-  }
   return (
-    <Button size="sm" variant="ghost" asChild>
-      <Link href={`/request/${requestId}/messages`}>詳細</Link>
+    <Button size="sm" variant="outline" asChild>
+      <Link href={`/transactions/${transactionId}`}>詳細</Link>
     </Button>
   )
 }

@@ -47,7 +47,15 @@ export interface PortfolioItem {
   tags: string[]
 }
 
-export type RequestStatus = "draft" | "structured" | "matching" | "quoted" | "contracted" | "in_progress" | "delivered" | "completed"
+export type RequestStatus =
+  | "draft"
+  | "structured"
+  | "matching"
+  | "quoted"
+  | "contracted"
+  | "in_progress"
+  | "delivered"
+  | "completed"
 
 export interface RequestSpec {
   id: string
@@ -81,31 +89,76 @@ export interface Match {
   status: "pending" | "accepted" | "declined"
 }
 
+export interface Attachment {
+  id: string
+  name: string
+  url: string
+  type: "image" | "file"
+  size?: string
+}
+
 export interface Message {
   id: string
   requestId: string
   senderId: string
   text: string
   createdAt: string
+  readAt?: string
+  attachments?: Attachment[]
 }
+
+export interface EstimateItem {
+  id: string
+  name: string
+  quantity: number
+  unitPrice: number
+  amount: number
+  note?: string
+}
+
+export type EstimateStatus = "pending" | "accepted" | "rejected"
 
 export interface Estimate {
   id: string
   requestId: string
   craftsmanId: string
-  amount: number
+  items: EstimateItem[]
+  subtotal: number
+  tax: number
+  total: number
   description: string
-  status: "pending" | "accepted" | "rejected"
+  notes?: string
+  validUntil: string
+  status: EstimateStatus
+  createdAt: string
+}
+
+export interface TimelineEvent {
+  id: string
+  status: RequestStatus
+  actorId: string
+  note: string
+  createdAt: string
 }
 
 export interface Transaction {
   id: string
   requestId: string
+  requesterId: string
+  craftsmanId: string
+  estimateId: string
   title: string
-  craftsmanName: string
   amount: number
   status: RequestStatus
   updatedAt: string
+  timeline: TimelineEvent[]
+}
+
+export interface ReviewCategoryScores {
+  quality: number
+  communication: number
+  deadline: number
+  costPerformance: number
 }
 
 export interface Review {
@@ -114,7 +167,29 @@ export interface Review {
   reviewerId: string
   revieweeId: string
   rating: number
+  categories: ReviewCategoryScores
   comment: string
+  photos?: string[]
+  createdAt: string
+}
+
+export type EscrowStatus =
+  | "unpaid"
+  | "held"
+  | "released"
+  | "refunded"
+
+export interface EscrowPayment {
+  id: string
+  transactionId: string
+  requesterId: string
+  craftsmanId: string
+  amount: number
+  platformFee: number
+  craftsmanAmount: number
+  status: EscrowStatus
+  paidAt?: string
+  releasedAt?: string
 }
 
 export interface Notification {
@@ -362,7 +437,8 @@ export const requests: ProjectRequest[] = [
     id: "r1",
     requesterId: "u-requester-1",
     title: "アルファード 着脱式収納ボックス製作",
-    description: "3列目シート下のデッドスペースを活用し、子供用品とキャンプ道具を分けられる着脱式の収納ボックスが欲しい。軽量で、工具なしで取り外せる仕様。",
+    description:
+      "3列目シート下のデッドスペースを活用し、子供用品とキャンプ道具を分けられる着脱式の収納ボックスが欲しい。軽量で、工具なしで取り外せる仕様。",
     status: "matching",
     image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80",
     createdAt: "2026-10-01T10:00:00Z",
@@ -376,6 +452,15 @@ export const requests: ProjectRequest[] = [
     status: "quoted",
     createdAt: "2026-09-20T09:00:00Z",
   },
+  {
+    id: "r3",
+    requesterId: "u-requester-1",
+    title: "シエンタ リアスピーカー配線＆LED増設",
+    description:
+      "リア席用スピーカーの配線と、フットランプLEDの増設を依頼したい。電装経験のある技能者を希望。",
+    status: "contracted",
+    createdAt: "2026-09-10T09:00:00Z",
+  },
 ]
 
 export const matches: Match[] = [
@@ -383,14 +468,60 @@ export const matches: Match[] = [
   { id: "m2", requestId: "r1", craftsmanId: "cp1", score: 82, status: "pending" },
 ]
 
+const estimateE1Items: EstimateItem[] = [
+  {
+    id: "ei1",
+    name: "耐水ウッドパネル（オーク調）",
+    quantity: 12,
+    unitPrice: 8500,
+    amount: 102000,
+    note: "内壁・床面分",
+  },
+  { id: "ei2", name: "施工費", quantity: 1, unitPrice: 80000, amount: 80000, note: "2名・2日間" },
+  { id: "ei3", name: "接着剤・副資材", quantity: 1, unitPrice: 18000, amount: 18000 },
+]
+
+const estimateE2Items: EstimateItem[] = [
+  {
+    id: "ei4",
+    name: "合板パネル（シナベニヤ）",
+    quantity: 12,
+    unitPrice: 6500,
+    amount: 78000,
+    note: "内壁・床面分",
+  },
+  { id: "ei5", name: "施工費", quantity: 1, unitPrice: 95000, amount: 95000, note: "1名・3日間" },
+  { id: "ei6", name: "防水塗装仕上げ", quantity: 1, unitPrice: 25000, amount: 25000 },
+]
+
 export const estimates: Estimate[] = [
   {
     id: "e1",
     requestId: "r2",
     craftsmanId: "cp1",
-    amount: 220000,
+    items: estimateE1Items,
+    subtotal: 200000,
+    tax: 20000,
+    total: 220000,
     description: "材料費・施工費込みの見積りです。納期は2週間を予定しています。",
+    notes: "オーク調パネル使用。保証期間6ヶ月。",
+    validUntil: "2026-10-20T23:59:59Z",
     status: "pending",
+    createdAt: "2026-09-21T09:00:00Z",
+  },
+  {
+    id: "e2",
+    requestId: "r2",
+    craftsmanId: "cp3",
+    items: estimateE2Items,
+    subtotal: 198000,
+    tax: 19800,
+    total: 217800,
+    description: "シナベニヤに防水塗装仕上げを施したプランです。",
+    notes: "納期2週間。塗装色は要相談。",
+    validUntil: "2026-10-22T23:59:59Z",
+    status: "pending",
+    createdAt: "2026-09-22T10:00:00Z",
   },
 ]
 
@@ -401,6 +532,7 @@ export const messages: Message[] = [
     senderId: "u-craftsman-1",
     text: "ご依頼ありがとうございます。木材の種類はお任せでよろしいでしょうか？",
     createdAt: "2026-09-21T10:00:00Z",
+    readAt: "2026-09-21T10:05:00Z",
   },
   {
     id: "msg2",
@@ -408,6 +540,80 @@ export const messages: Message[] = [
     senderId: "u-requester-1",
     text: "予算内であればオーク調でお願いします。",
     createdAt: "2026-09-21T11:00:00Z",
+    readAt: "2026-09-21T11:02:00Z",
+  },
+  {
+    id: "msg3",
+    requestId: "r2",
+    senderId: "u-craftsman-1",
+    text: "オーク調の見積書を作成しました。添付ファイルをご確認ください。",
+    createdAt: "2026-09-21T12:00:00Z",
+    attachments: [
+      {
+        id: "att1",
+        name: "見積書_e1.pdf",
+        url: "#",
+        type: "file",
+        size: "180KB",
+      },
+    ],
+  },
+  {
+    id: "msg4",
+    requestId: "r3",
+    senderId: "u-craftsman-4",
+    text: "配線増設の件、車両の配線図をいただけますでしょうか？",
+    createdAt: "2026-09-11T10:00:00Z",
+    readAt: "2026-09-11T10:10:00Z",
+  },
+  {
+    id: "msg5",
+    requestId: "r3",
+    senderId: "u-requester-1",
+    text: "後ほど画像を送ります。",
+    createdAt: "2026-09-11T11:00:00Z",
+    readAt: "2026-09-11T11:05:00Z",
+  },
+]
+
+const transactionT1Timeline: TimelineEvent[] = [
+  {
+    id: "te1",
+    status: "quoted",
+    actorId: "u-craftsman-1",
+    note: "見積もりを提出しました。",
+    createdAt: "2026-09-21T09:00:00Z",
+  },
+  {
+    id: "te2",
+    status: "contracted",
+    actorId: "u-requester-1",
+    note: "見積もりを承認し、契約しました。",
+    createdAt: "2026-09-23T10:00:00Z",
+  },
+]
+
+const transactionT2Timeline: TimelineEvent[] = [
+  {
+    id: "te3",
+    status: "quoted",
+    actorId: "u-craftsman-4",
+    note: "見積もりを提出しました。",
+    createdAt: "2026-09-11T09:00:00Z",
+  },
+  {
+    id: "te4",
+    status: "contracted",
+    actorId: "u-requester-1",
+    note: "見積もりを承認し、契約しました。",
+    createdAt: "2026-09-12T10:00:00Z",
+  },
+  {
+    id: "te5",
+    status: "in_progress",
+    actorId: "u-craftsman-4",
+    note: "配線加工を開始しました。",
+    createdAt: "2026-09-13T09:00:00Z",
   },
 ]
 
@@ -415,11 +621,40 @@ export const transactions: Transaction[] = [
   {
     id: "t1",
     requestId: "r2",
+    requesterId: "u-requester-1",
+    craftsmanId: "u-craftsman-1",
+    estimateId: "e1",
     title: "ハイエース 内壁ウッドパネル貼り",
-    craftsmanName: "佐藤 匠",
     amount: 220000,
     status: "quoted",
-    updatedAt: "2026-09-21T11:00:00Z",
+    updatedAt: "2026-09-23T10:00:00Z",
+    timeline: transactionT1Timeline,
+  },
+  {
+    id: "t2",
+    requestId: "r3",
+    requesterId: "u-requester-1",
+    craftsmanId: "u-craftsman-4",
+    estimateId: "est-t2",
+    title: "シエンタ リアスピーカー配線＆LED増設",
+    amount: 98000,
+    status: "in_progress",
+    updatedAt: "2026-09-13T09:00:00Z",
+    timeline: transactionT2Timeline,
+  },
+]
+
+export const escrowPayments: EscrowPayment[] = [
+  {
+    id: "pay1",
+    transactionId: "t2",
+    requesterId: "u-requester-1",
+    craftsmanId: "u-craftsman-4",
+    amount: 98000,
+    platformFee: 4900,
+    craftsmanAmount: 93100,
+    status: "held",
+    paidAt: "2026-09-12T10:30:00Z",
   },
 ]
 
@@ -430,7 +665,32 @@ export const reviews: Review[] = [
     reviewerId: "u-requester-1",
     revieweeId: "u-craftsman-1",
     rating: 5,
+    categories: {
+      quality: 5,
+      communication: 5,
+      deadline: 4,
+      costPerformance: 5,
+    },
     comment: "丁寧な対応で、仕上がりも満足です。",
+    photos: [
+      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&q=80",
+    ],
+    createdAt: "2026-08-15T10:00:00Z",
+  },
+  {
+    id: "rev2",
+    transactionId: "t-old2",
+    reviewerId: "u-requester-1",
+    revieweeId: "u-craftsman-1",
+    rating: 4,
+    categories: {
+      quality: 5,
+      communication: 4,
+      deadline: 4,
+      costPerformance: 4,
+    },
+    comment: "希望通りの仕上がりでした。納期が少し遅れましたが、連絡は丁寧でした。",
+    createdAt: "2026-06-20T10:00:00Z",
   },
 ]
 
@@ -451,6 +711,14 @@ export const notifications: Notification[] = [
     read: false,
     createdAt: "2026-10-02T09:00:00Z",
   },
+  {
+    id: "n3",
+    userId: "u-requester-1",
+    title: "新しい見積もりが届きました",
+    body: "田中 工房さんから「ハイエース 内壁ウッドパネル貼り」の見積もりが届きました。",
+    read: false,
+    createdAt: "2026-09-22T10:05:00Z",
+  },
 ]
 
 export function getUserById(id: string): User | undefined {
@@ -459,6 +727,10 @@ export function getUserById(id: string): User | undefined {
 
 export function getCraftsmanById(id: string): CraftsmanProfile | undefined {
   return craftsmanProfiles.find((p) => p.id === id)
+}
+
+export function getCraftsmanByUserId(userId: string): CraftsmanProfile | undefined {
+  return craftsmanProfiles.find((p) => p.userId === userId)
 }
 
 export function getRequestById(id: string): ProjectRequest | undefined {
@@ -475,4 +747,54 @@ export function getPortfolioForCraftsman(craftsmanId: string): PortfolioItem[] {
 
 export function getMessagesForRequest(requestId: string): Message[] {
   return messages.filter((m) => m.requestId === requestId)
+}
+
+export function getEstimatesForRequest(requestId: string): Estimate[] {
+  return estimates.filter((e) => e.requestId === requestId)
+}
+
+export function getEstimateById(id: string): Estimate | undefined {
+  return estimates.find((e) => e.id === id)
+}
+
+export function getTransactionById(id: string): Transaction | undefined {
+  return transactions.find((t) => t.id === id)
+}
+
+export function getTransactionByRequestId(requestId: string): Transaction | undefined {
+  return transactions.find((t) => t.requestId === requestId)
+}
+
+export function getEscrowForTransaction(transactionId: string): EscrowPayment | undefined {
+  return escrowPayments.find((p) => p.transactionId === transactionId)
+}
+
+export function getTransactionCraftsmanName(transaction: Transaction): string {
+  const craftsman = getCraftsmanById(transaction.craftsmanId)
+  const user = craftsman ? getUserById(craftsman.userId) : undefined
+  return user?.name ?? "不明"
+}
+
+export function getReviewsForUser(userId: string): Review[] {
+  return reviews.filter((r) => r.revieweeId === userId)
+}
+
+export function getAverageCategoryScores(userId: string): ReviewCategoryScores | undefined {
+  const userReviews = getReviewsForUser(userId)
+  if (userReviews.length === 0) return undefined
+  const sum = userReviews.reduce(
+    (acc, r) => ({
+      quality: acc.quality + r.categories.quality,
+      communication: acc.communication + r.categories.communication,
+      deadline: acc.deadline + r.categories.deadline,
+      costPerformance: acc.costPerformance + r.categories.costPerformance,
+    }),
+    { quality: 0, communication: 0, deadline: 0, costPerformance: 0 }
+  )
+  return {
+    quality: sum.quality / userReviews.length,
+    communication: sum.communication / userReviews.length,
+    deadline: sum.deadline / userReviews.length,
+    costPerformance: sum.costPerformance / userReviews.length,
+  }
 }

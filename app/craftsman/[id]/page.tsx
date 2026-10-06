@@ -17,7 +17,10 @@ import {
   getCraftsmanById,
   getUserById,
   getPortfolioForCraftsman,
+  getReviewsForUser,
+  getAverageCategoryScores,
 } from "@/lib/demo-data"
+import { ReviewStars } from "@/components/review-stars"
 
 export default async function CraftsmanDetailPage({
   params,
@@ -28,6 +31,10 @@ export default async function CraftsmanDetailPage({
   const craftsman = getCraftsmanById(id)
   const user = craftsman ? getUserById(craftsman.userId) : undefined
   const portfolio = craftsman ? getPortfolioForCraftsman(craftsman.id) : []
+  const reviews = craftsman ? getReviewsForUser(craftsman.userId) : []
+  const categoryScores = craftsman
+    ? getAverageCategoryScores(craftsman.userId)
+    : undefined
 
   if (!craftsman || !user) {
     return (
@@ -162,6 +169,121 @@ export default async function CraftsmanDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Separator className="my-10" />
+
+      <section>
+        <div className="mb-6">
+          <h2 className="font-serif text-2xl font-bold">評価・レビュー</h2>
+          <p className="mt-1 text-muted-foreground">
+            {reviews.length > 0
+              ? `${reviews.length}件のレビュー`
+              : "まだレビューはありません"}
+          </p>
+        </div>
+        {reviews.length > 0 ? (
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="rounded-2xl lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="font-serif text-base">
+                  総合評価
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <ReviewStars rating={craftsman.rating} size="lg" />
+                  <span className="font-serif text-3xl font-bold">
+                    {craftsman.rating.toFixed(1)}
+                  </span>
+                </div>
+                {categoryScores && (
+                  <div className="mt-4 space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">品質</p>
+                      <ReviewStars
+                        rating={categoryScores.quality}
+                        size="sm"
+                        showValue
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        コミュニケーション
+                      </p>
+                      <ReviewStars
+                        rating={categoryScores.communication}
+                        size="sm"
+                        showValue
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        納期遵守
+                      </p>
+                      <ReviewStars
+                        rating={categoryScores.deadline}
+                        size="sm"
+                        showValue
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">コスパ</p>
+                      <ReviewStars
+                        rating={categoryScores.costPerformance}
+                        size="sm"
+                        showValue
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4 lg:col-span-2">
+              {reviews.map((review) => {
+                const reviewer = getUserById(review.reviewerId)
+                return (
+                  <Card key={review.id} className="rounded-2xl">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="font-serif text-base">
+                          {reviewer?.name ?? "依頼者"}
+                        </CardTitle>
+                        <ReviewStars
+                          rating={review.rating}
+                          size="sm"
+                          showValue
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {review.comment}
+                      </p>
+                      {review.photos && review.photos.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {review.photos.map((photo, idx) => (
+                            <img
+                              key={idx}
+                              src={photo}
+                              alt={`レビュー写真 ${idx + 1}`}
+                              className="h-20 w-20 rounded-xl object-cover"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">
+            まだレビューが投稿されていません。
+          </p>
+        )}
+      </section>
 
       <Separator className="my-10" />
 

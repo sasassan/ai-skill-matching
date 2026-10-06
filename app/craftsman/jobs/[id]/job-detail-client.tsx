@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Send } from "lucide-react"
+import { ArrowLeft, Send, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -112,6 +112,15 @@ export function JobDetailClient({ id }: { id: string }) {
               応募する
             </Button>
           </form>
+
+          <div className="mt-4 text-center">
+            <Button variant="outline" asChild className="gap-1">
+              <Link href={`/craftsman/estimates/new?requestId=${request.id}`}>
+                <FileText className="h-4 w-4" />
+                詳細な見積書を作成
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

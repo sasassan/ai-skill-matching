@@ -12,3 +12,15 @@ export function formatDate(iso: string): string {
     minute: "2-digit",
   }).format(date)
 }
+
+export function formatCurrency(amount: number): string {
+  return `¥${amount.toLocaleString()}`
+}
+
+export function formatShortDate(iso: string): string {
+  const date = new Date(iso)
+  return new Intl.DateTimeFormat("ja-JP", {
+    month: "short",
+    day: "numeric",
+  }).format(date)
+}

@@ -16,11 +16,19 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSession } from "@/components/session-provider"
-import { skills, craftsmanProfiles } from "@/lib/demo-data"
+import {
+  skills,
+  craftsmanProfiles,
+  getReviewsForUser,
+  getAverageCategoryScores,
+} from "@/lib/demo-data"
+import { ReviewStars } from "@/components/review-stars"
 
 export default function CraftsmanProfilePage() {
   const { user } = useSession()
   const profile = craftsmanProfiles.find((p) => p.userId === user.id)
+  const reviews = getReviewsForUser(user.id)
+  const categoryScores = getAverageCategoryScores(user.id)
 
   const [name, setName] = useState(user.name)
   const [bio, setBio] = useState(profile?.bio ?? "")
@@ -52,6 +60,61 @@ export default function CraftsmanProfilePage() {
           依頼者に伝わるプロフィールを整えましょう。
         </p>
       </div>
+
+      <Card className="mb-6 rounded-2xl">
+        <CardHeader>
+          <CardTitle className="font-serif">評価サマリー</CardTitle>
+          <CardDescription>
+            {reviews.length > 0
+              ? `${reviews.length}件のレビューに基づく平均評価`
+              : "まだレビューはありません"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {reviews.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <ReviewStars rating={profile?.rating ?? 0} size="lg" />
+                <span className="font-serif text-2xl font-bold">
+                  {profile?.rating.toFixed(1)}
+                </span>
+              </div>
+              {categoryScores && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">品質</p>
+                    <ReviewStars rating={categoryScores.quality} size="sm" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      コミュニケーション
+                    </p>
+                    <ReviewStars
+                      rating={categoryScores.communication}
+                      size="sm"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">納期遵守</p>
+                    <ReviewStars rating={categoryScores.deadline} size="sm" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">コスパ</p>
+                    <ReviewStars
+                      rating={categoryScores.costPerformance}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              完了した取引の依頼者から評価が届くとここに表示されます。
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="rounded-2xl">
         <CardHeader>
