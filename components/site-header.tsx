@@ -17,6 +17,7 @@ import { useSession } from "@/components/session-provider"
 import { cn } from "@/lib/utils"
 
 const requesterLinks = [
+  { href: "/craftsmen", label: "技能者を探す" },
   { href: "/request/new", label: "依頼する" },
   { href: "/transactions", label: "取引管理" },
   { href: "/mypage", label: "マイページ" },

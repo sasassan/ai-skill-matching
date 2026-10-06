@@ -39,6 +39,9 @@ export default function Page() {
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
+                <Link href="/craftsmen">技能者を探す</Link>
+              </Button>
+              <Button variant="ghost" size="lg" asChild>
                 <Link href="/craftsman/jobs">技能者の方はこちら</Link>
               </Button>
             </div>

@@ -15,13 +15,22 @@ export interface Skill {
   category: string
 }
 
+export interface Coordinates {
+  lat: number
+  lng: number
+}
+
 export interface CraftsmanProfile {
   id: string
   userId: string
   bio: string
   location: string
+  prefecture: string
+  coordinates: Coordinates
+  serviceAreas: string[]
   skills: Skill[]
   equipment: string[]
+  materials: string[]
   specialSkills: string[]
   rating: number
   reviewCount: number
@@ -145,6 +154,38 @@ export const users: User[] = [
     verified: true,
   },
   {
+    id: "u-craftsman-3",
+    name: "鈴木 工芸",
+    email: "suzuki@example.com",
+    role: "craftsman",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=suzuki",
+    verified: true,
+  },
+  {
+    id: "u-craftsman-4",
+    name: "高橋 カスタム",
+    email: "takahashi@example.com",
+    role: "craftsman",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=takahashi",
+    verified: true,
+  },
+  {
+    id: "u-craftsman-5",
+    name: "伊藤 レザー",
+    email: "ito@example.com",
+    role: "craftsman",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ito",
+    verified: true,
+  },
+  {
+    id: "u-craftsman-6",
+    name: "渡辺 ウッドワークス",
+    email: "watanabe@example.com",
+    role: "craftsman",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=watanabe",
+    verified: true,
+  },
+  {
     id: "u-admin-1",
     name: "管理 花子",
     email: "admin@example.com",
@@ -169,8 +210,12 @@ export const craftsmanProfiles: CraftsmanProfile[] = [
     userId: "u-craftsman-1",
     bio: "30年以上の車両内装職人。レザー・ファブリック・木目調パネルまで、オーダーメイドで対応します。",
     location: "東京都世田谷区",
+    prefecture: "東京都",
+    coordinates: { lat: 35.6466, lng: 139.6532 },
+    serviceAreas: ["東京都", "神奈川県", "埼玉県"],
     skills: [skills[0], skills[1], skills[2]],
     equipment: ["工業用ミシン", "レザークラフト工具", "CNCルーター"],
+    materials: ["本革", "合皮", "ファブリック", "アルカンターラ"],
     specialSkills: ["オーダーシート縫製", "ステッチカラー自由", "抗菌加工生地対応"],
     rating: 4.8,
     reviewCount: 23,
@@ -182,13 +227,85 @@ export const craftsmanProfiles: CraftsmanProfile[] = [
     userId: "u-craftsman-2",
     bio: "車載収納と内装カスタムを得意とする工房。着脱式収納ボックスや釣り具ラックの実績多数。",
     location: "神奈川県横浜市",
+    prefecture: "神奈川県",
+    coordinates: { lat: 35.4437, lng: 139.638 },
+    serviceAreas: ["神奈川県", "東京都", "千葉県"],
     skills: [skills[2], skills[3], skills[4]],
     equipment: ["3Dプリンター", "レーザーカッター", "丸ノコ盤"],
+    materials: ["合板", "MDF", "ABS樹脂", "ポリカーボネート"],
     specialSkills: ["着脱式収納設計", "3Dデータ作成", "軽量化設計"],
     rating: 4.6,
     reviewCount: 17,
     completedOrders: 89,
     hourlyRate: 7000,
+  },
+  {
+    id: "cp3",
+    userId: "u-craftsman-3",
+    bio: "木工を軸にした車内パネル・収納の製作工房。細かなサイズ合わせと塗装仕上げが強みです。",
+    location: "埼玉県さいたま市",
+    prefecture: "埼玉県",
+    coordinates: { lat: 35.8617, lng: 139.6455 },
+    serviceAreas: ["埼玉県", "東京都", "群馬県"],
+    skills: [skills[2], skills[4]],
+    equipment: ["丸ノコ盤", "トリマー", "塗装ブース"],
+    materials: ["合板", "無垢材", "突板", "ウレタン塗料"],
+    specialSkills: ["曲面加工", "塗装仕上げ", "オーダーパネル"],
+    rating: 4.4,
+    reviewCount: 11,
+    completedOrders: 54,
+    hourlyRate: 6000,
+  },
+  {
+    id: "cp4",
+    userId: "u-craftsman-4",
+    bio: "樹脂成型と電装配線を得意とするカスタム工房。LED照明や充電ポートなど電装系の相談も可能です。",
+    location: "千葉県千葉市",
+    prefecture: "千葉県",
+    coordinates: { lat: 35.6074, lng: 140.1065 },
+    serviceAreas: ["千葉県", "東京都", "茨城県"],
+    skills: [skills[3], skills[5]],
+    equipment: ["3Dプリンター", "真空成型機", "配線工具一式"],
+    materials: ["ABS樹脂", "ポリカーボネート", "アクリル", "LEDユニット"],
+    specialSkills: ["電装配線", "LED加工", "防水加工"],
+    rating: 4.7,
+    reviewCount: 19,
+    completedOrders: 71,
+    hourlyRate: 9000,
+  },
+  {
+    id: "cp5",
+    userId: "u-craftsman-5",
+    bio: "本革シートの張り替えと縫製を専門とするレザー工房。スポーツカーの内装リフレッシュ実績多数。",
+    location: "東京都練馬区",
+    prefecture: "東京都",
+    coordinates: { lat: 35.7356, lng: 139.6517 },
+    serviceAreas: ["東京都", "埼玉県", "神奈川県"],
+    skills: [skills[0], skills[1]],
+    equipment: ["工業用ミシン", "革裁断機", "ヒートプレス"],
+    materials: ["本革", "スエード", "アルカンターラ", "ステッチ糸"],
+    specialSkills: ["本革縫製", "シート張り替え", "内装フルリフレッシュ"],
+    rating: 4.9,
+    reviewCount: 31,
+    completedOrders: 203,
+    hourlyRate: 11000,
+  },
+  {
+    id: "cp6",
+    userId: "u-craftsman-6",
+    bio: "車中泊・アウトドア向けの木製パネルや収納を手がけるワークス。軽量で丈夫な構造設計が得意です。",
+    location: "神奈川県川崎市",
+    prefecture: "神奈川県",
+    coordinates: { lat: 35.5308, lng: 139.703 },
+    serviceAreas: ["神奈川県", "東京都"],
+    skills: [skills[2]],
+    equipment: ["丸ノコ盤", "電動ドリル", "サンダー"],
+    materials: ["合板", "シナベニヤ", "断熱材", "防水塗料"],
+    specialSkills: ["車中泊レイアウト", "断熱施工", "軽量化設計"],
+    rating: 4.3,
+    reviewCount: 8,
+    completedOrders: 36,
+    hourlyRate: 5500,
   },
 ]
 

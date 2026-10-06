@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { CraftsmanMap } from "@/components/craftsman-map"
 import {
   getCraftsmanById,
   getUserById,
@@ -94,6 +95,34 @@ export default async function CraftsmanDetailPage({
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8 rounded-2xl">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            <CardTitle className="font-serif">所在地・対応地域</CardTitle>
+          </div>
+          <CardDescription>
+            所在地: {craftsman.location} / 対応地域:{" "}
+            {craftsman.serviceAreas.join("・")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-3">
+          <CraftsmanMap
+            markers={[
+              {
+                id: craftsman.id,
+                lat: craftsman.coordinates.lat,
+                lng: craftsman.coordinates.lng,
+                name: user.name,
+                location: craftsman.location,
+                rating: craftsman.rating,
+              },
+            ]}
+            height={320}
+          />
         </CardContent>
       </Card>
 
