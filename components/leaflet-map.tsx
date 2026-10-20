@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { cn } from "@/lib/utils"
 
 export interface MapMarker {
   id: string
@@ -18,6 +19,7 @@ interface LeafletMapProps {
   markers: MapMarker[]
   height?: number
   zoom?: number
+  className?: string
 }
 
 function createPinIcon(): L.DivIcon {
@@ -49,7 +51,7 @@ function popupHtml(marker: MapMarker): string {
     </div>`
 }
 
-export function LeafletMap({ markers, height = 360, zoom = 11 }: LeafletMapProps) {
+export function LeafletMap({ markers, height, zoom = 11, className }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
@@ -113,8 +115,12 @@ export function LeafletMap({ markers, height = 360, zoom = 11 }: LeafletMapProps
   return (
     <div
       ref={containerRef}
-      style={{ height }}
-      className="z-0 w-full overflow-hidden rounded-2xl border border-border"
+      style={height ? { height } : undefined}
+      className={cn(
+        "z-0 w-full overflow-hidden rounded-2xl border border-border",
+        !height && "h-full",
+        className
+      )}
     />
   )
 }

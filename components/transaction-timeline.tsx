@@ -33,30 +33,32 @@ export function TransactionTimeline({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          {statusSteps.map((step, idx) => (
-            <div key={step.status} className="flex flex-1 items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                    idx <= currentIndex
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step.icon}
+        <div className="overflow-x-auto pb-2">
+          <div className="flex min-w-[320px] items-center justify-between">
+            {statusSteps.map((step, idx) => (
+              <div key={step.status} className="flex flex-1 items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                      idx <= currentIndex
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {step.icon}
+                  </div>
+                  <span className="mt-1 text-xs">{step.label}</span>
                 </div>
-                <span className="mt-1 text-xs">{step.label}</span>
+                {idx < statusSteps.length - 1 && (
+                  <div
+                    className={`mx-2 h-0.5 flex-1 ${
+                      idx < currentIndex ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
+                )}
               </div>
-              {idx < statusSteps.length - 1 && (
-                <div
-                  className={`mx-2 h-0.5 flex-1 ${
-                    idx < currentIndex ? "bg-primary" : "bg-muted"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="space-y-3">

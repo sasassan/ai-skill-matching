@@ -44,7 +44,7 @@ export function EstimatesClient({ id }: { id: string }) {
 
       <div className="mb-8">
         <p className="text-sm text-muted-foreground">{request?.title}</p>
-        <h1 className="font-serif text-2xl font-bold">見積もり比較</h1>
+        <h1 className="font-serif text-xl font-bold md:text-2xl">見積もり比較</h1>
       </div>
 
       {estimates.length === 0 ? (
@@ -66,7 +66,7 @@ export function EstimatesClient({ id }: { id: string }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <Table>
+              <Table className="responsive-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>技能者</TableHead>

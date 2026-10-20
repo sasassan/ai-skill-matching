@@ -95,8 +95,8 @@ export function EstimatePreview({
 
         <Separator />
 
-        <div className="rounded-xl border">
-          <Table>
+        <div className="overflow-x-auto rounded-xl border">
+          <Table className="responsive-table">
             <TableHeader>
               <TableRow>
                 <TableHead>項目</TableHead>

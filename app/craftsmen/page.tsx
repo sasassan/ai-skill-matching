@@ -271,7 +271,7 @@ export default function CraftsmenSearchPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-3">
-              <CraftsmanMap markers={markers} height={320} />
+              <CraftsmanMap markers={markers} className="h-[260px] sm:h-[320px]" />
             </CardContent>
           </Card>
 

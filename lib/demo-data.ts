@@ -192,9 +192,18 @@ export interface EscrowPayment {
   releasedAt?: string
 }
 
+export type NotificationType =
+  | "request"
+  | "estimate"
+  | "message"
+  | "review"
+  | "ai"
+  | "system"
+
 export interface Notification {
   id: string
   userId: string
+  type: NotificationType
   title: string
   body: string
   read: boolean
@@ -698,6 +707,7 @@ export const notifications: Notification[] = [
   {
     id: "n1",
     userId: "u-requester-1",
+    type: "ai",
     title: "AI仕様書が完成しました",
     body: "「アルファード 着脱式収納ボックス」の仕様書を確認してください。",
     read: false,
@@ -706,6 +716,7 @@ export const notifications: Notification[] = [
   {
     id: "n2",
     userId: "u-requester-1",
+    type: "request",
     title: "マッチング候補が2件見つかりました",
     body: "対応可能な技能者が見つかりました。プロフィールを確認しましょう。",
     read: false,
@@ -714,6 +725,7 @@ export const notifications: Notification[] = [
   {
     id: "n3",
     userId: "u-requester-1",
+    type: "estimate",
     title: "新しい見積もりが届きました",
     body: "田中 工房さんから「ハイエース 内壁ウッドパネル貼り」の見積もりが届きました。",
     read: false,

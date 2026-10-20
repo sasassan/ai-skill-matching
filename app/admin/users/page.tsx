@@ -16,7 +16,7 @@ export default function AdminUsersPage() {
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold">ユーザー管理</h1>
+        <h1 className="font-serif text-xl font-bold md:text-2xl">ユーザー管理</h1>
         <p className="mt-2 text-muted-foreground">
           登録ユーザーのロールと認証状態を管理できます。
         </p>
@@ -27,7 +27,7 @@ export default function AdminUsersPage() {
           <CardTitle className="font-serif">ユーザー一覧</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
+          <Table className="responsive-table">
             <TableHeader>
               <TableRow>
                 <TableHead>名前</TableHead>

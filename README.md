@@ -140,6 +140,41 @@ npm run typecheck    # TypeScript 型検査
 
 バグ報告や機能提案は Issue でお気軽にどうぞ。
 
+## Vercel へのデプロイ
+
+### 1. Vercel プロジェクトを作成
+
+```bash
+npm i -g vercel
+vercel login
+vercel
+```
+
+初回は対話形式でプロジェクトを作成します。以降は同じディレクトリで `vercel --prod` で本番デプロイできます。
+
+### 2. 環境変数を設定
+
+Vercel Dashboard の **Settings > Environment Variables** から以下を登録してください。
+
+| 変数名 | 値 |
+|--------|-----|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://your-project.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase 匿名キー |
+| `NEXT_PUBLIC_APP_URL` | `https://your-project.vercel.app` |
+| `OPENAI_API_KEY` | OpenAI API キー（AI機能を有効化する場合） |
+| `STRIPE_SECRET_KEY` | Stripe 秘密鍵（決済を有効化する場合） |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe 公開可能キー |
+
+`vercel.json` にビルド設定が含まれているため、フレームワークは自動的に Next.js として認識されます。
+
+### 3. 本番デプロイ
+
+```bash
+vercel --prod
+```
+
+デプロイが完了すると、Vercel Dashboard またはターミナル出力からライブ URL を確認できます。
+
 ## ライセンス
 
 [MIT](LICENSE)

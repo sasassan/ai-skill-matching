@@ -146,3 +146,29 @@
 .cm-popup-link:hover {
   text-decoration: underline;
 }
+
+@layer utilities {
+  .min-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .responsive-table {
+    min-width: 640px;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+}

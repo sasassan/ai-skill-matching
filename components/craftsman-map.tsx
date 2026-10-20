@@ -8,7 +8,7 @@ const LeafletMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[360px] items-center justify-center rounded-2xl border border-border bg-secondary/40">
+      <div className="flex h-[260px] items-center justify-center rounded-2xl border border-border bg-secondary/40 sm:h-[320px]">
         <p className="text-sm text-muted-foreground">地図を読み込み中...</p>
       </div>
     ),
@@ -19,8 +19,9 @@ interface CraftsmanMapProps {
   markers: MapMarker[]
   height?: number
   zoom?: number
+  className?: string
 }
 
-export function CraftsmanMap({ markers, height, zoom }: CraftsmanMapProps) {
-  return <LeafletMap markers={markers} height={height} zoom={zoom} />
+export function CraftsmanMap({ markers, height, zoom, className }: CraftsmanMapProps) {
+  return <LeafletMap markers={markers} height={height} zoom={zoom} className={className} />
 }

@@ -23,7 +23,7 @@ export default function TransactionsPage() {
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold">取引管理</h1>
+        <h1 className="font-serif text-xl font-bold md:text-2xl">取引管理</h1>
         <p className="mt-2 text-muted-foreground">
           進行中の取引と過去の取引を確認できます。
         </p>
@@ -37,7 +37,7 @@ export default function TransactionsPage() {
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
+          <Table className="responsive-table">
             <TableHeader>
               <TableRow>
                 <TableHead>案件名</TableHead>

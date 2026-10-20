@@ -117,11 +117,11 @@ export function RequestMessagesClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-10">
+    <div className="container mx-auto max-w-3xl px-4 py-8 md:py-10">
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">{request?.title ?? "メッセージ"}</p>
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-2xl font-bold">チャット</h1>
+          <h1 className="font-serif text-xl font-bold md:text-2xl">チャット</h1>
           <Badge variant="outline" className="text-xs">
             更新: {lastPolled.toLocaleTimeString("ja-JP")}
           </Badge>
@@ -174,7 +174,7 @@ export function RequestMessagesClient({ id }: { id: string }) {
 
       <Card className="rounded-2xl">
         <CardContent className="space-y-4 p-4 md:p-6">
-          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-2">
+          <div className="max-h-[50vh] space-y-4 overflow-y-auto pr-2 md:max-h-[60vh]">
             {messages.map((message) => {
               const sender = getUserById(message.senderId)
               const isMe = message.senderId === currentUser.id
@@ -187,7 +187,7 @@ export function RequestMessagesClient({ id }: { id: string }) {
                     <AvatarImage src={sender?.avatar} alt={sender?.name} />
                     <AvatarFallback>{sender?.name?.slice(0, 2)}</AvatarFallback>
                   </Avatar>
-                  <div className={`max-w-[80%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+                  <div className={`max-w-[85%] flex flex-col sm:max-w-[80%] ${isMe ? "items-end" : "items-start"}`}>
                     <p className="mb-1 text-xs text-muted-foreground">{sender?.name}</p>
                     <div
                       className={`rounded-2xl px-4 py-3 text-sm ${
@@ -284,7 +284,7 @@ export function RequestMessagesClient({ id }: { id: string }) {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -321,7 +321,7 @@ export function RequestMessagesClient({ id }: { id: string }) {
                   <p className="text-sm text-muted-foreground">
                     Supabase Storageへのアップロードはデモのため省略しています。
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
                       type="button"
                       variant="outline"
@@ -355,12 +355,12 @@ export function RequestMessagesClient({ id }: { id: string }) {
                 }
               }}
               placeholder="メッセージを入力..."
-              className="rounded-xl"
+              className="min-w-0 flex-1 rounded-xl text-base sm:text-sm"
             />
             <Button
               onClick={handleSend}
               disabled={!text.trim() && attachments.length === 0}
-              className="gap-1"
+              className="shrink-0 gap-1"
             >
               <Send className="h-4 w-4" />
               送信
