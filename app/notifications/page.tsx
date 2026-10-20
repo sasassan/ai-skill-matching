@@ -6,7 +6,6 @@ import {
   Bell,
   Check,
   Mail,
-  MessageSquare,
   Settings,
   Smartphone,
   Sparkles,
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  notifications as initialNotifications,
   type Notification,
   craftsmanProfiles,
   requests,

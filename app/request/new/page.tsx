@@ -99,6 +99,21 @@ const TEMPLATES: RequestTemplate[] = [
 
 const STEPS = ["テンプレート選択", "依頼内容", "条件の入力", "確認・作成"]
 
+function buildFullDescription(
+  description: string,
+  requirements: string,
+  materials: string
+) {
+  const parts = [description]
+  if (requirements.trim()) {
+    parts.push(`\n\n【必須条件】\n${requirements}`)
+  }
+  if (materials.trim()) {
+    parts.push(`\n\n【希望素材】\n${materials}`)
+  }
+  return parts.join("")
+}
+
 export default function NewRequestPage() {
   const [step, setStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
@@ -435,19 +450,4 @@ export default function NewRequestPage() {
       </Card>
     </div>
   )
-}
-
-function buildFullDescription(
-  description: string,
-  requirements: string,
-  materials: string
-) {
-  const parts = [description]
-  if (requirements.trim()) {
-    parts.push(`\n\n【必須条件】\n${requirements}`)
-  }
-  if (materials.trim()) {
-    parts.push(`\n\n【希望素材】\n${materials}`)
-  }
-  return parts.join("")
 }
