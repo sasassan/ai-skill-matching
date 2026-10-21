@@ -158,12 +158,11 @@ export default function NewRequestPage() {
     setLoading(true)
     setSubmitError(null)
     try {
-      const structured = await structureRequest(
+      await structureRequest(
         [title, category, buildFullDescription(description, requirements, materials), `予算: ${budget}`, `納期: ${deadline}`].filter(Boolean).join("\\n")
       )
       // Do not navigate to a hard-coded demo request: it would display another user\u0027s sample data.
       // Persistence and navigation must be implemented together with authentication.
-      console.info("Request structure generated", { title: structured.title })
       setSubmitError("AIによる内容整理は完了しましたが、案件の保存機能はまだ準備中です。入力内容は送信されていません。")
     } catch {
       setSubmitError("AIによる内容整理に失敗しました。時間をおいて再度お試しください。")
