@@ -114,6 +114,8 @@ function buildFullDescription(
   return parts.join("")
 }
 
+type SubmitMessage = { kind: "info" | "error"; text: string } | null
+
 export default function NewRequestPage() {
   const [step, setStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
@@ -125,7 +127,7 @@ export default function NewRequestPage() {
   const [budget, setBudget] = useState("")
   const [deadline, setDeadline] = useState("")
   const [loading, setLoading] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitMessage, setSubmitMessage] = useState<SubmitMessage>(null)
 
   const selectTemplate = (templateId: string) => {
     setSelectedTemplate(templateId)
@@ -156,16 +158,16 @@ export default function NewRequestPage() {
     e.preventDefault()
     if (!description.trim()) return
     setLoading(true)
-    setSubmitError(null)
+    setSubmitMessage(null)
     try {
       await structureRequest(
-        [title, category, buildFullDescription(description, requirements, materials), `予算: ${budget}`, `納期: ${deadline}`].filter(Boolean).join("\\n")
+        [title, category, buildFullDescription(description, requirements, materials), `予算: ${budget}`, `納期: ${deadline}`].filter(Boolean).join("\n")
       )
       // Do not navigate to a hard-coded demo request: it would display another user\u0027s sample data.
       // Persistence and navigation must be implemented together with authentication.
-      setSubmitError("AIによる内容整理は完了しましたが、案件の保存機能はまだ準備中です。入力内容は送信されていません。")
+      setSubmitMessage({ kind: "info", text: "AIによる内容整理は完了しましたが、案件の保存機能はまだ準備中です。入力内容は送信されていません。" })
     } catch {
-      setSubmitError("AIによる内容整理に失敗しました。時間をおいて再度お試しください。")
+      setSubmitMessage({ kind: "error", text: "AIによる内容整理に失敗しました。時間をおいて再度お試しください。" })
     } finally {
       setLoading(false)
     }
@@ -421,7 +423,17 @@ export default function NewRequestPage() {
                   </dl>
                 </div>
 
-                {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
+                {submitMessage && (
+                  <p
+                    role={submitMessage.kind === "error" ? "alert" : "status"}
+                    className={cn(
+                      "text-sm",
+                      submitMessage.kind === "error" ? "text-destructive" : "text-primary"
+                    )}
+                  >
+                    {submitMessage.text}
+                  </p>
+                )}
                 <Button
                   type="submit"
                   className="w-full gap-2"
