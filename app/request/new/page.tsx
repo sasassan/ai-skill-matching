@@ -125,6 +125,7 @@ export default function NewRequestPage() {
   const [budget, setBudget] = useState("")
   const [deadline, setDeadline] = useState("")
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const selectTemplate = (templateId: string) => {
     setSelectedTemplate(templateId)
@@ -155,9 +156,20 @@ export default function NewRequestPage() {
     e.preventDefault()
     if (!description.trim()) return
     setLoading(true)
-    await structureRequest(description)
-    setLoading(false)
-    window.location.href = "/request/r1/spec"
+    setSubmitError(null)
+    try {
+      const structured = await structureRequest(
+        [title, category, buildFullDescription(description, requirements, materials), `予算: ${budget}`, `納期: ${deadline}`].filter(Boolean).join("\\n")
+      )
+      // Do not navigate to a hard-coded demo request: it would display another user\u0027s sample data.
+      // Persistence and navigation must be implemented together with authentication.
+      console.info("Request structure generated", { title: structured.title })
+      setSubmitError("AIによる内容整理は完了しましたが、案件の保存機能はまだ準備中です。入力内容は送信されていません。")
+    } catch {
+      setSubmitError("AIによる内容整理に失敗しました。時間をおいて再度お試しください。")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fullDescription = buildFullDescription(
@@ -410,6 +422,7 @@ export default function NewRequestPage() {
                   </dl>
                 </div>
 
+                {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
                 <Button
                   type="submit"
                   className="w-full gap-2"
