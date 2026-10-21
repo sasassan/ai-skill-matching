@@ -396,9 +396,19 @@ export async function reverseMatch(
   const parsed = safeJsonParse<Record<string, unknown>>(raw)
   const list = Array.isArray(parsed?.opportunities) ? (parsed.opportunities as unknown[]) : []
 
+  const scores = new Map<string, number>()
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue
+    const entry = item as Record<string, unknown>
+    const id = stringField(entry.requestId)
+    if (id && typeof entry.score === "number" && Number.isFinite(entry.score)) {
+      scores.set(id, clampScore(entry.score))
+    }
+  }
+
   return normalizeOpportunities(list, newRequests).map((opp) => ({
     ...opp,
-    score: 80,
+    score: scores.get(opp.requestId) ?? 0,
   }))
 }
 
@@ -441,7 +451,7 @@ ${requests
     {
       "requestId": "案件ID",
       "title": "案件タイトル",
-      "reason": "なぜこの技能者に適しているか、具体的な日本語の理由"
+      "reason": "なぜこの技能者に適しているか、具体的な日本語の理由",\n      "score": 0
     }
   ]
 }`
