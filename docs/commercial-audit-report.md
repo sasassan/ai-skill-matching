@@ -198,3 +198,142 @@ Supabase・OpenAI・Stripeの環境変数はすべて未設定で、Supabaseプ�
 ## 7. セキュリティ上の脆弱性
 
 **現状**
+
+- `.env.example` はSupabase publishable key、OpenAI secret key、Stripe secret key等の設定名を分けて記載。OpenAI keyはサーバー側 `process.env` から読む。ソース中に実際の秘密値は見つからず、`dangerouslySetInnerHTML`も見つからない。
+- Reactの通常のテキスト描画が主体で、主要なXSSリスクを下げる設計。ただし入力検証と権限制御は不十分。
+
+**問題点**
+
+- 5・4項のRLSが重大な情報漏えい/権限昇格リスク。Supabase publishable keyは公開前提なので、RLSを強固にしなければならない。
+- 環境変数がなくてもSupabase URL/keyをプレースホルダーに置き換えてアプリ初期化を通す。未設定を起動時に検知して停止しないため、本番で接続先誤りが分かりにくい。
+- 依頼/見積/レビュー/AI入力にサーバー側の厳密なvalidation/authorizationなし。ファイル添付はブラウザの `accept` だけで、サイズ・MIME/内容・枚数・権限検査なし。object URLを使い、永続アップロードは未実装。
+- カード風フォームはデータを送らずStripeも無効だが、支払い完了と表示する。利用者の誤認を誘う重大な金融・信頼上の問題。
+- `Content-Security-Policy`、セキュリティヘッダー、API abuse対策/rate limiting、監査ログの設定が確認できない。
+- XSSについては現時点で危険なHTML挿入APIの利用を確認しなかったが、将来Markdown/HTML表示を入れる場合はsanitizationが必要。CSRFはNext Server Actionsの標準検証があるとしても、権限/認証の代替にはならず、独自API/Webhookの保護は別途必要。
+
+**深刻度: Critical**
+
+**改善提案**
+
+- RLS修正をリリース前のブロッカーとし、匿名/認証済み全ロールの越権テストを実行する。service-role keyはクライアントへ絶対に渡さない。
+- server-side schema validation、ユーザー単位rate limit、ファイル許可リスト/サイズ上限/ウイルス検査、Storage private bucketと署名URL、CSP/セキュリティヘッダー、secret scanningを設定する。
+- 実際の決済完了をPSP検証イベント以外から生成できない状態遷移にし、デモ表示と本番支払い導線を明確に分離する。
+
+## 8. レスポンシブデザインと操作性
+
+**現状**
+
+- モバイルプリセットでホーム、依頼作成、技能者検索、ログイン、管理ユーザー一覧を表示し、主要領域は縦一列、カードは画面内に収まる。ヘッダーはモバイルメニューへ切り替わる。
+- 多くのフォーム/カードにTailwindの`sm:`/`md:`ブレークポイントがあり、タッチ向け `touch-action: manipulation` が共通CSSにある。
+
+**問題点**
+
+- 依頼作成、検索条件等は狭幅で縦長。管理者表は `min-width:640px` と横スクロールで列を表示するため、360〜412pxでは横方向操作が必要。幅360/375/412pxそれぞれでレイアウト・横スクロール・フォーム入力を個別測定していない。
+- 入力欄のタップ領域は一定だが、共通 `.min-touch-target` は定義だけで全操作への適用は確認できない。星評価、削除、アイコンだけの操作等は説明/ラベルが不十分。
+- 依頼画像・プロフィール/実績画像・チャット添付などのUIはあるが、実アップロードも、失敗時の再試行もない。
+
+**深刻度: Medium**
+
+**改善提案**
+
+- 360/375/412pxを含む実機相当のブラウザ試験を自動化し、横溢れ、テーブル操作、モーダル、ソフトキーボード表示、長文折返しを検査する。
+- 重要操作のタップ領域を44×44px以上に統一し、アイコンボタンにaccessible name、評価ボタンに「星1」等の読み上げラベルを付ける。
+- 表形式情報は狭幅でカード化または必要列のみ表示し、横スクロール依存を減らす。
+
+## 9. SEO、表示速度、アクセシビリティ
+
+**現状**
+
+- `app/layout.tsx` に共通title/description/keywords、metadataBase、OGP画像、Twitter large-image、`lang="ja"` を設定。`public/ogp.png` とfaviconがある。
+- `next/image` のremote patternはUnsplash/Dicebear/OpenStreetMap向けに設定。主要なフォームラベル、ページ見出し、通知ボタンラベルなどはある。
+- 本番ビルドの共通First Load JSは103kB。ページは静的/動的レンダリングとして正常に生成された。
+
+**問題点**
+
+- OGP画像が約1.2MB。`<img>`の直接使用が4箇所あり、ESLintも4警告（技能者詳細2、ポートフォリオ1、レビュー写真1）。`next/image`最適化/サイズ指定は一部未使用。
+- 個別ページのdescription/OGP/canonical、robots.txt、sitemap.xml、構造化データは確認できない。検索結果にデモプロフィール/デモ取引が露出するのも避ける必要がある。
+- First Load JSは最大約210kB（login）、/craftsmenが約186kB。直ちに巨大ではないが、クライアントコンポーネントが多く、Leaflet等を含む画面単位の分割/実データでのCore Web Vitals計測は未確認。
+- 見出し/ラベルは一部ある一方、icon-only buttons、星評価、画像入力、プロフィールのクリック可能な`div`、表の横スクロールなどにキーボード/スクリーンリーダー上の課題が残る。コントラストやフォーカス順の監査も未実施。
+
+**深刻度: Medium**
+
+**改善提案**
+
+- OGP画像を圧縮・適正寸法にし、主要画像を`next/image`に移行して寸法/priority/loadingを適切に指定する。
+- 公開対象ページの固有metadata、canonical、robots/sitemap、実データのみの構造化情報を整備する。
+- WCAG 2.2 AAを目標にキーボード全操作、フォーカス可視化、読み上げ名、色コントラスト、エラーの関連付けをチェックし、Lighthouse/Web Vitalsを実運用想定で測る。
+
+## 10. エラーハンドリング、テスト、保守性
+
+**現状**
+
+- TypeScript strictが有効。`npm run typecheck`、`npm run lint`、`npm run build` scriptがある。
+- 依頼フォームのAI呼出にはtry/catchがあり、JSON parse helperも例外を捕捉する。通知画面の推薦呼出にもcatchがある。Not Foundページと一部`notFound()`処理がある。
+- build/typecheckは成功。lintは0 errorだが、`<img>`使用に関するwarningが4件。既存テストコードとtest scriptは見つからない。
+
+**問題点**
+
+- アプリ共通のerror boundary (`error.tsx`)、loading状態、監視/ログ、外部APIのtimeout/retry/分類、DB失敗時の復旧/重複送信防止がない。
+- 多くのボタンはデモ状態変更のみで、失敗経路/永続化がないため、現状では業務エラー処理も検証できない。入力制約は一部HTML required/min程度で、サーバー検証テストがない。
+- `demo-data.ts`と各ページを密結合し、画面stateの直接変更や固定IDを多用。変更時にフロー横断で一貫性を保ちにくい。
+- 自動テストなし。buildのroute generationはページ生成確認であって、権限・CRUD・支払い・ユーザーフローの試験ではない。
+- 初回にtypecheckとbuildを並列実行した際、buildが`.next/types`を書き換えるタイミングと競合してTS6053が発生した。build完了後の単独再実行は成功。独立並列で同一 `.next` を触るCI/開発実行は避ける必要がある。
+
+**深刻度: High**
+
+**改善提案**
+
+- Unit/integration/e2eを追加し、認証、各ロールのRLS拒否、依頼保存、見積承認、状態遷移、二重webhook、返金、再読み込み後の永続化を最低限カバーする。
+- `error.tsx`/`loading.tsx`と利用者向け再試行UI、サーバーログ/例外監視を整備する。失敗時に成功トースト/完了状態にならないことを確認する。
+- フォームを共有schemaでサーバー検証し、demo dataへの直接書込みをDBサービスへ段階的に置換する。
+
+---
+
+## 商用化完成度スコア: 12 / 100
+
+| 評価領域 | 点数 | 根拠 |
+|---|---:|---|
+| UI/情報設計・操作可能な画面 | 6/20 | 28画面、検索/フォーム/一覧UIがあり、mobile presetと全ルートの表示は確認できる |
+| 実データ永続化・業務状態 | 0/25 | DB CRUDなし。依頼/メッセージ/見積/プロフィール/評価が永続化されない |
+| 認証・認可・データ保護 | 0/20 | Auth sessionが画面stateに反映されず、ロール切替自由。RLSに権限昇格/不正アクセス条件 |
+| 決済・外部サービス | 1/20 | 条件付きOpenAI呼出コードはあるが未設定。Stripeはstub、実決済なし |
+| 品質・運用準備 | 5/15 | TypeScript/build/lintは概ね通るが、テスト・監視・障害対応がない |
+| **合計** | **12/100** | **画面プロトタイプとしての完成度と、商用サービスの準備度は別評価** |
+
+## Critical / Highの問題一覧
+
+### Critical
+
+1. ログイン/sessionとユーザー状態を連携せず、誰でも依頼者/技能者/管理者になりすませる。管理画面を含むルート保護もない。
+2. RLSのプロフィール全公開条件、自己role変更可能なupdate policy、requester ID偽装、参加関係を検証しないmessage insert、本人確認status偽装などにより、DBを有効化した場合に情報漏えい/権限昇格/偽装データ作成が可能。
+3. Supabase業務CRUDがゼロで、業務データ全体がdemo配列。複数ユーザー間の実取引を成立させられない。
+4. Stripe Connect/実決済がなく、支払いが完了したかのようにUI表示する。資金の受領・保留・精算・返金は実行されない。
+5. DB schema/seedの前提が噛み合わず、seedはAuth user外部キーとuser_id conflict constraintの問題でそのままでは適用できない。
+
+### High
+
+1. 新規依頼はAI整理後に保存しない。他の応募、見積、取引、レビュー、管理操作も本番データを更新しない。
+2. AI入力/ファイルに十分なサーバー側制限・認可・サイズ検証がなく、AI推定値の人間確認/安全審査が不十分。
+3. 各ページが固定デモIDと `demo-data.ts` に依存し、利用者データの混在や誤操作時の根拠のない成功表示が起きる。
+4. エラー境界/運用ログ/テストがなく、主要な業務・セキュリティ不具合を検知・再現できない。
+
+## 改善の優先順位
+
+1. **公開/決済を止める**: Stripe未接続中の「支払い完了」「エスクロー」表現を撤去し、全デモデータを明示的なデモ環境に閉じ込める。
+2. **認証と権限を作り直す**: 実Auth session、サーバー側route/action guard、roleの自己変更禁止、RLSを修正。匿名/依頼者/技能者/管理者のアクセス拒否テストを通す。
+3. **DB設計とmigration/seedを直す**: アプリ業務モデルとのギャップを埋め、Auth user/profile作成方式と一意制約を確定。stagingで空状態から再現可能に適用する。
+4. **業務フローを永続化する**: 依頼投稿/AI仕様確認/保存/応募/見積/メッセージ/取引/検収/レビューをサーバー検証付きで実装。成功表示はDB commit後に限る。
+5. **決済を適法・安全に実装する**: マーケットプレイスPSPの審査、本人確認、決済/返金/精算/webhook/二重処理対策を整備し、法務・資金フローをレビューする。
+6. **セキュリティと品質ゲートを追加する**: validation、rate limiting、アップロード安全策、監査ログ、エラー監視、E2E/RLSテストを追加し、CIでbuild/lint/typecheck/testsを実行する。
+7. **商用UIの最終検証**: 360/375/412px実測、アクセシビリティ、metadata/SEO、OGP圧縮、画像最適化、Core Web Vitalsを確認する。
+
+## 検証結果
+
+- `git fetch origin && git reset --hard origin/main`: 成功。`origin/main` の `4e301a9` に同期。開始時点でローカル固有コミットがあったため、指示どおりリセットして最新mainを優先した。
+- `npm install`: 成功（up to date）。`.npmrc` の未知の `store-dir` 警告、およびinstall script未承認の `unrs-resolver` 警告あり。
+- `npm run build`: 成功。28ページを含む本番build完了。`<img>`最適化警告4件。
+- `npm run lint`: 成功、0 errors / 4 warnings（未最適化`<img>`）。
+- `npm run typecheck`: build完了後に単独再実行して成功。buildと並列に実行した初回は`.next/types`生成と競合してTS6053が出た。
+- HTTP smoke check: 代表的な動的IDを用いた28 URL中28 URLが200。
+- モバイル: 固定mobile presetで主要5画面を視認。個別幅360/375/412pxは未計測。管理者表は横スクロール領域を使用。
+- Supabase CRUD/Auth、OpenAI実応答、Stripe決済/webhook: credential/外部環境がないため未検証。ソース上もSupabaseの業務CRUDとStripe決済処理は存在しない。
