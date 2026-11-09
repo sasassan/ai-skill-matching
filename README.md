@@ -7,7 +7,7 @@
 - **依頼者**: 自然言語で「作りたいもの」を投稿し、AIが仕様書に整理。マッチング結果から技能者を選んで相談・発注できます。
 - **技能者**: プロフィール・ポートフォリオを登録し、AIおすすめ案件に応募・提案できます。
 - **管理者**: ユーザー・案件・取引を一元管理できるダッシュボードを用意。
-- **AI機能**: 依頼の構造化、仕様書生成、技能者とのマッチングスコアリングのstubを実装。OpenAI API等に差し替え可能です。
+- **AI機能**: OpenAI APIによる依頼構造化、仕様書生成、技能者マッチング（`OPENAI_API_KEY` とSupabase認証が必要）。
 
 ## 技術スタック
 
@@ -17,10 +17,9 @@
 | 言語 | TypeScript |
 | スタイリング | Tailwind CSS v4 |
 | UIコンポーネント | shadcn/ui (base-nova) |
-| 認証・データベース | Supabase (Auth, Database, Storage) |
-| 認証ラッパー | @verdent/auth-js |
-| 決済（予定） | Stripe Connect |
-| AI（予定） | OpenAI API |
+| 認証・データベース | Supabase Auth / Database / RLS |
+| 決済（未接続） | Stripe Connect |
+| AI | OpenAI API（`OPENAI_API_KEY` 設定時） |
 
 ## セットアップ手順
 
@@ -54,7 +53,7 @@ Supabaseプロジェクトの作成方法や匿名キーの取得については
 
 ### 4. Supabaseスキーマを適用
 
-`supabase/migrations/0001_initial.sql` をSupabase SQL Editorで実行し、テーブル・RLSポリシーを作成してください。必要に応じて `supabase/seed.sql` でデモデータを投入できます。
+`supabase/migrations/0001_initial.sql` と `supabase/migrations/0002_commercial_security.sql` を順番にSupabase SQL Editorで実行し、その後で `supabase/seed.sql` を適用してください。seedには公開用の技能マスターのみが含まれ、Authユーザーや管理者を作成しません。Authユーザー作成時にプロフィールが自動作成されます。
 
 ### 5. 開発サーバーを起動
 
@@ -116,19 +115,15 @@ npm run typecheck    # TypeScript 型検査
 
 ## AI機能
 
-`lib/ai.ts` に以下のstub関数を配置しています。実際のAPIキーがあればOpenAI API等の呼び出しに置き換え可能です。
-
-- `structureRequest(input)` — 自然言語依頼を構造化
-- `generateSpecification(input)` — 仕様書テキスト生成
-- `scoreMatching(spec, craftsmanIds)` — マッチングスコアリング
+`lib/ai.ts` のAI機能は `OPENAI_API_KEY` が設定され、Supabase Authセッションが有効な場合に利用できます。キー未設定時は固定デモ結果を返さず、設定不足として扱います。
 
 ## 決済
 
-`lib/stripe.ts` はStripe Connect連携のplaceholderです。本番では環境変数から秘密鍵を読み込み、Connectオンボーディングフローを実装してください。
+`lib/stripe.ts` はStripe Connect未接続の状態です。カード情報や支払い処理は受け付けず、画面に決済準備中と表示します。
 
-## デモデータ
+## 認証・データ
 
-`lib/demo-data.ts` に依頼者・技能者・管理者のサンプルデータを用意しています。ヘッダーのユーザーアイコンまたはモバイルメニューから、依頼者 / 技能者 / 管理者のビューを切り替えられます。
+ログインと新規登録はSupabase Authのメールアドレス＋パスワードを使用します。登録時のアカウント種別は依頼者・技能者に限られ、管理者権限はDB側で管理します。画面データはSupabaseから取得し、アクセス制御はRLSでも強制されます。
 
 ## コントリビューション方法
 
