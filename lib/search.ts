@@ -1,4 +1,4 @@
-import { getUserById, type CraftsmanProfile } from "@/lib/demo-data"
+import type { CraftsmanProfile, FulfillmentType, Listing } from "@/lib/models"
 
 export interface SearchFilters {
   query: string
@@ -31,10 +31,9 @@ function normalize(value: string): string {
 }
 
 function searchableText(profile: CraftsmanProfile): string {
-  const user = getUserById(profile.userId)
   return normalize(
     [
-      user?.name ?? "",
+      profile.name,
       profile.bio,
       profile.location,
       profile.prefecture,
@@ -117,4 +116,28 @@ export function getSearchOptions(profiles: CraftsmanProfile[]): SearchOptions {
   ).sort()
   const materials = Array.from(new Set(profiles.flatMap((p) => p.materials))).sort()
   return { prefectures, categories, materials }
+}
+
+export interface ListingSearchFilters {
+  keyword?: string
+  categoryId?: string
+  fulfillmentType?: FulfillmentType
+  area?: string
+  minPrice?: number
+  maxPrice?: number
+}
+
+export function searchListings(listings: Listing[], filters: ListingSearchFilters): Listing[] {
+  const keywords = (filters.keyword ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean)
+  const area = (filters.area ?? "").trim().toLowerCase()
+  return listings.filter((listing) => {
+    if (listing.status !== "published" || !listing.category?.isPublic) return false
+    if (filters.categoryId && listing.categoryId !== filters.categoryId) return false
+    if (filters.fulfillmentType && listing.fulfillmentType !== filters.fulfillmentType) return false
+    if (area && ![listing.location ?? "", ...listing.serviceAreas].some((value) => value.toLowerCase().includes(area))) return false
+    if (filters.minPrice !== undefined && (listing.price === null || listing.price < filters.minPrice)) return false
+    if (filters.maxPrice !== undefined && (listing.price === null || listing.price > filters.maxPrice)) return false
+    const searchable = [listing.title, listing.description, listing.category.name, listing.location ?? "", ...listing.serviceAreas].join(" " ).toLowerCase()
+    return keywords.every((keyword) => searchable.includes(keyword))
+  })
 }

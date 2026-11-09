@@ -48,6 +48,8 @@
 }
 
 :root {
+    --font-sans: "Noto Sans JP", system-ui, sans-serif;
+    --font-serif: "Noto Serif JP", "Yu Mincho", serif;
     --background: #F7F4EF;
     --foreground: #1E2A3A;
     --card: #FDFBF8;
@@ -161,6 +163,7 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
   }
 
   button,
@@ -170,5 +173,20 @@
   textarea,
   select {
     touch-action: manipulation;
+  }
+
+  :focus-visible {
+    scroll-margin-block: 5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
