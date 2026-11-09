@@ -1,30 +1,34 @@
 import { Badge } from "@/components/ui/badge"
-import type { RequestStatus } from "@/lib/demo-data"
+import type { BookingStatus, OrderStatus, RequestStatus } from "@/lib/models"
 
-interface StatusBadgeProps {
-  status: RequestStatus
+const labels: Record<string, string> = {
+  draft: "下書き",
+  structured: "募集中",
+  matching: "応募受付中",
+  quoted: "見積もり済み",
+  contracted: "契約済み",
+  requested: "予約申請中",
+  accepted: "承認済み",
+  cancelled_by_customer: "利用者がキャンセル",
+  cancelled_by_provider: "提供者がキャンセル",
+  completed: "完了",
+  reviewed: "レビュー済み",
+  consulting: "相談中",
+  ordered: "発注済み",
+  in_progress: "進行中",
+  delivered: "納品済み",
+  cancelled: "キャンセル",
+}
+export function StatusBadge({
+  status,
+  className,
+}: {
+  status: BookingStatus | OrderStatus | RequestStatus
   className?: string
-}
-
-const statusMap: Record<
-  RequestStatus,
-  { label: string; variant: React.ComponentProps<typeof Badge>["variant"] }
-> = {
-  draft: { label: "下書き", variant: "secondary" },
-  structured: { label: "仕様確定", variant: "default" },
-  matching: { label: "マッチング中", variant: "default" },
-  quoted: { label: "見積り中", variant: "secondary" },
-  contracted: { label: "契約済", variant: "default" },
-  in_progress: { label: "製作中", variant: "default" },
-  delivered: { label: "納品済", variant: "secondary" },
-  completed: { label: "完了", variant: "default" },
-}
-
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const { label, variant } = statusMap[status] ?? { label: status, variant: "outline" }
+}) {
   return (
-    <Badge variant={variant} className={className}>
-      {label}
+    <Badge variant="secondary" className={className}>
+      {labels[status] ?? status}
     </Badge>
   )
 }

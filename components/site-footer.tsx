@@ -1,26 +1,25 @@
 import Link from "next/link"
+import { appName } from "@/lib/app-config"
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-card py-10">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col items-start justify-between gap-6 md:flex-row">
-          <div>
-            <Link href="/" className="font-serif text-xl font-bold">SkillMatch</Link>
-            <p className="mt-2 text-sm text-muted-foreground">
-              「作りたい」と「できる」を、AIでつなぐ。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-8 text-sm text-muted-foreground">
-            <Link href="/request/new" className="hover:text-foreground">依頼する</Link>
-            <Link href="/craftsman/dashboard" className="hover:text-foreground">技能者向け</Link>
-            <Link href="/mypage" className="hover:text-foreground">マイページ</Link>
-            <Link href="/admin/dashboard" className="hover:text-foreground">管理者</Link>
-          </div>
+    <footer className="border-t bg-card py-10">
+      <div className="container mx-auto flex flex-wrap justify-between gap-8 px-4">
+        <div>
+          <Link href="/" className="font-serif text-xl font-bold">
+            {appName}
+          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">
+            あなたの「できる」が、誰かの「うれしい」に。
+          </p>
         </div>
-        <p className="mt-8 text-xs text-muted-foreground">
-          © 2026 SkillMatch. All rights reserved.
-        </p>
+        <nav className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+          <Link href="/guide">使い方</Link>
+          <Link href="/providers/guide">提供者ガイド</Link>
+          <Link href="/faq">FAQ</Link>
+          <Link href="/terms">利用規約</Link>
+          <Link href="/privacy">プライバシー</Link>
+        </nav>
       </div>
     </footer>
   )
