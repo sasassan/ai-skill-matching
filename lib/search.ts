@@ -137,7 +137,7 @@ export function searchListings(listings: Listing[], filters: ListingSearchFilter
     if (area && ![listing.location ?? "", ...listing.serviceAreas].some((value) => value.toLowerCase().includes(area))) return false
     if (filters.minPrice !== undefined && (listing.price === null || listing.price < filters.minPrice)) return false
     if (filters.maxPrice !== undefined && (listing.price === null || listing.price > filters.maxPrice)) return false
-    const searchable = [listing.title, listing.description, listing.category.name, listing.location ?? "", ...listing.serviceAreas].join(" " ).toLowerCase()
+    const searchable = [listing.title, listing.description, listing.category.name, listing.location ?? "", ...listing.serviceAreas].join(" ").toLowerCase()
     return keywords.every((keyword) => searchable.includes(keyword))
   })
 }
