@@ -12,10 +12,37 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE OR REPLACE FUNCTION public.protect_profile_trusted_fields()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  acting_admin BOOLEAN := false;
+BEGIN
+  IF auth.uid() IS NOT NULL THEN
+    SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') INTO acting_admin;
+  END IF;
+  IF TG_OP = 'INSERT' AND (NEW.role = 'admin' OR COALESCE(NEW.verified, false))
+    AND NOT acting_admin AND COALESCE(auth.role(), '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Trusted profile fields cannot be assigned by users';
+  ELSIF TG_OP = 'UPDATE' AND (NEW.role IS DISTINCT FROM OLD.role OR NEW.verified IS DISTINCT FROM OLD.verified)
+    AND NOT acting_admin AND COALESCE(auth.role(), '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Trusted profile fields cannot be changed by users';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER profiles_protect_trusted_fields
+  BEFORE INSERT OR UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.protect_profile_trusted_fields();
+
 -- 技能者詳細プロフィール
 CREATE TABLE IF NOT EXISTS public.craftsman_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
   bio TEXT,
   location TEXT,
   equipment TEXT[] DEFAULT '{}',
@@ -153,7 +180,7 @@ CREATE TABLE IF NOT EXISTS public.admin_notes (
 -- 本人確認状態
 CREATE TABLE IF NOT EXISTS public.identity_verifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'unsubmitted' CHECK (status IN ('unsubmitted','pending','approved','rejected')),
   document_url TEXT,
   reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -192,13 +219,13 @@ ALTER TABLE public.portfolio_items ENABLE ROW LEVEL SECURITY;
 
 -- プロフィール: 自分のものは全て、技能者/依頼者は他者の公開情報も読める
 CREATE POLICY "profiles_select_own_or_public" ON public.profiles
-  FOR SELECT USING (auth.uid() = id OR true);
+  FOR SELECT USING (true);
 
 CREATE POLICY "profiles_update_own" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "profiles_insert_own" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+  FOR INSERT WITH CHECK (auth.uid() = id AND role IN ('requester', 'craftsman'));
 
 -- 技能者詳細: 公開
 CREATE POLICY "craftsman_profiles_select_public" ON public.craftsman_profiles
@@ -233,11 +260,13 @@ CREATE POLICY "requests_select" ON public.requests
 
 CREATE POLICY "requests_insert_requester" ON public.requests
   FOR INSERT WITH CHECK (
+    requester_id = auth.uid() AND
     EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'requester')
   );
 
 CREATE POLICY "requests_update_requester" ON public.requests
-  FOR UPDATE USING (auth.uid() = requester_id);
+  FOR UPDATE USING (auth.uid() = requester_id)
+  WITH CHECK (auth.uid() = requester_id);
 
 -- 仕様書: 関連案件の関係者のみ
 CREATE POLICY "specifications_select" ON public.specifications
@@ -292,7 +321,24 @@ CREATE POLICY "messages_select" ON public.messages
   );
 
 CREATE POLICY "messages_insert_participant" ON public.messages
-  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+  FOR INSERT WITH CHECK (
+    auth.uid() = sender_id AND EXISTS (
+      SELECT 1 FROM public.requests r
+      WHERE r.id = request_id AND (
+        r.requester_id = auth.uid() OR
+        EXISTS (
+          SELECT 1 FROM public.matches m
+          JOIN public.craftsman_profiles cp ON cp.id = m.craftsman_id
+          WHERE m.request_id = r.id AND cp.user_id = auth.uid()
+        ) OR
+        EXISTS (
+          SELECT 1 FROM public.applications a
+          JOIN public.craftsman_profiles cp ON cp.id = a.craftsman_id
+          WHERE a.request_id = r.id AND cp.user_id = auth.uid()
+        )
+      )
+    )
+  );
 
 -- 取引: 関係者
 CREATE POLICY "transactions_select" ON public.transactions
@@ -321,7 +367,9 @@ CREATE POLICY "admin_notes_admin" ON public.admin_notes
 CREATE POLICY "identity_verifications_select_own" ON public.identity_verifications
   FOR SELECT USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
 CREATE POLICY "identity_verifications_insert_own" ON public.identity_verifications
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id AND status IN ('unsubmitted','pending') AND reviewed_by IS NULL
+  );
 CREATE POLICY "identity_verifications_update_admin" ON public.identity_verifications
   FOR UPDATE USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
 
