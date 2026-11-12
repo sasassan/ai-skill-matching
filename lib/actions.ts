@@ -3,7 +3,9 @@
 import "server-only"
 import type { Attachment, BookingStatus, FulfillmentType, ListingStatus, OrderStatus } from "@/lib/models"
 import { deleteListing as removeListing, deleteListingImage, insertBooking, insertListing, insertListingImage, insertOrder, insertTradeMessage, markTradeMessageRead, updateListing, type ListingValues } from "@/lib/supabase-data"
-import { createServerSupabaseClient, requireServerProfile } from "@/lib/supabase-server"
+import { createServerSupabaseClient, createServiceSupabaseClient, requireServerProfile } from "@/lib/supabase-server"
+import { createAccountLink, createConnectAccount, createPaymentIntent, createPayout, getAccountStatus, getBalance, stripePaymentEnabled } from "@/lib/stripe"
+import { releasePayment, requirePaymentConfiguration, requireSafeRetry, syncConnectAccount } from "@/lib/payment-service"
 
 function id(value: unknown): string {
   if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new Error("IDが不正です。")
@@ -87,7 +89,11 @@ export async function bookingStatus(bookingId: string, status: BookingStatus, re
   await requireServerProfile()
   const db = await createServerSupabaseClient()
   const { error } = await db.rpc("update_booking_status", { target_booking_id: id(bookingId), next_status: required(status, 50), reason: optional(reason, 1000) })
-  if (error) throw new Error("予約状態を変更できませんでした。")
+  if (error) throw new Error("予約状態を変更できませんでした。支払い済みの場合はキャンセル前に管理者にご相談ください。")
+  if (status === "completed" && stripePaymentEnabled) {
+    try { await releasePayment("booking", bookingId) }
+    catch { throw new Error("予約は完了しましたが、送金処理を確認できませんでした。取引詳細から再試行してください。") }
+  }
 }
 
 export async function createOrder(input: { listingId?: string | null; providerProfileId?: string | null; title: string; description: string; specification?: Record<string, unknown> | null }) {
@@ -101,7 +107,11 @@ export async function orderStatus(orderId: string, status: OrderStatus, reason?:
   await requireServerProfile()
   const db = await createServerSupabaseClient()
   const { error } = await db.rpc("update_order_status", { target_order_id: id(orderId), next_status: required(status, 50), reason: optional(reason, 1000) })
-  if (error) throw new Error("注文状態を変更できませんでした。")
+  if (error) throw new Error("注文状態を変更できませんでした。支払い済みの場合はキャンセル前に管理者にご相談ください。")
+  if (status === "completed" && stripePaymentEnabled) {
+    try { await releasePayment("order", orderId) }
+    catch { throw new Error("注文は完了しましたが、送金処理を確認できませんでした。取引詳細から再試行してください。") }
+  }
 }
 
 export async function submitOrderQuote(orderId: string, amount: number, description: string) {
@@ -222,4 +232,105 @@ export async function assignOrderProvider(orderId: string, providerProfileId: st
   await requireServerProfile()
   const { error } = await (await createServerSupabaseClient()).rpc("assign_order_provider", { target_order_id: id(orderId), target_provider_profile_id: id(providerProfileId) })
   if (error) throw new Error("提供者を指定できませんでした。")
+}
+
+export async function setupStripeAccount() {
+  requirePaymentConfiguration()
+  const actor = await requireServerProfile()
+  const db = createServiceSupabaseClient()
+  const { data: provider, error } = await db.from("provider_profiles").select("id,stripe_account_id").eq("user_id", actor.id).maybeSingle()
+  if (error || !provider) throw new Error("先に提供者プロフィールを登録してください。")
+  let accountId = provider.stripe_account_id as string | null
+  if (!accountId) {
+    const account = await createConnectAccount(actor.email, provider.id)
+    const { data: saved, error: saveError } = await db.from("provider_profiles").update({ stripe_account_id: account.id }).eq("id", provider.id).is("stripe_account_id", null).select("stripe_account_id").maybeSingle()
+    if (saveError) throw new Error("Stripeアカウントを保存できませんでした。")
+    if (saved) accountId = saved.stripe_account_id
+    else {
+      const current = await db.from("provider_profiles").select("stripe_account_id").eq("id", provider.id).single()
+      if (current.error || !current.data.stripe_account_id) throw new Error("Stripeアカウントを確認できませんでした。")
+      accountId = current.data.stripe_account_id
+    }
+  }
+  const origin = new URL(process.env.NEXT_PUBLIC_APP_URL as string)
+  if (origin.protocol !== "https:" && !(origin.protocol === "http:" && ["localhost", "127.0.0.1"].includes(origin.hostname))) throw new Error("アプリURLの設定が不正です。")
+  const link = await createAccountLink(accountId as string, origin.origin)
+  return link.url
+}
+
+export async function processPayment(type: FulfillmentType, tradeId: string) {
+  requirePaymentConfiguration()
+  await requireServerProfile()
+  const safeType = tradeType(type)
+  const db = await createServerSupabaseClient()
+  const { data: payment, error } = await db.rpc("reserve_trade_payment", { trade_type: safeType, trade_id: id(tradeId) }).single<{ id: string; provider_id: string; status: string; amount: number; stripe_payment_intent_id: string | null; stripe_attempted_at: string | null }>()
+  if (error || !payment) throw new Error("支払いを開始できません。取引状態と提供者のStripe登録をご確認ください。")
+  if (payment.status !== "pending") throw new Error("この取引の支払いは既に処理されています。")
+  const service = createServiceSupabaseClient()
+  const { data: provider, error: providerError } = await service.from("provider_profiles").select("stripe_account_id").eq("id", payment.provider_id).single()
+  if (providerError || !provider?.stripe_account_id || !await syncConnectAccount(provider.stripe_account_id)) throw new Error("提供者のStripe口座は現在支払いを受け付けられません。")
+  if (!payment.stripe_payment_intent_id) {
+    requireSafeRetry(payment.stripe_attempted_at)
+    const { error: attemptError } = await service.from("payments").update({ stripe_attempted_at: new Date().toISOString() }).eq("id", payment.id).is("stripe_attempted_at", null).eq("status", "pending")
+    if (attemptError) throw new Error("支払いを準備できませんでした。")
+  }
+  const intent = payment.stripe_payment_intent_id
+    ? await (await import("@/lib/stripe")).stripeClient().paymentIntents.retrieve(payment.stripe_payment_intent_id)
+    : await createPaymentIntent(payment.id, payment.amount)
+  if (!intent.client_secret || intent.amount !== payment.amount || intent.currency !== "jpy") throw new Error("支払い情報を確認できませんでした。")
+  const { error: saveError } = await service.from("payments").update({ stripe_payment_intent_id: intent.id }).eq("id", payment.id).eq("status", "pending")
+  if (saveError) throw new Error("支払い情報を保存できませんでした。")
+  return { clientSecret: intent.client_secret }
+}
+
+export async function transferToProvider(type: FulfillmentType, tradeId: string) {
+  requirePaymentConfiguration()
+  const actor = await requireServerProfile()
+  const db = await createServerSupabaseClient()
+  const safeType = tradeType(type)
+  const column = safeType === "booking" ? "booking_id" : "order_id"
+  const { data: payment, error } = await db.from("payments").select("customer_id,provider_id").eq(column, id(tradeId)).maybeSingle()
+  if (error || !payment) throw new Error("支払いを確認できませんでした。")
+  const { data: provider } = await db.from("provider_profiles").select("user_id").eq("id", payment.provider_id).maybeSingle()
+  if (actor.id !== payment.customer_id && actor.id !== provider?.user_id && actor.role !== "admin") throw new Error("取引の権限がありません。")
+  await releasePayment(safeType, tradeId)
+}
+
+export async function requestPayout() {
+  requirePaymentConfiguration()
+  const actor = await requireServerProfile()
+  const db = createServiceSupabaseClient()
+  const { data: provider, error } = await db.from("provider_profiles").select("id,stripe_account_id,stripe_onboarding_completed").eq("user_id", actor.id).maybeSingle()
+  if (error || !provider?.stripe_account_id || !provider.stripe_onboarding_completed) throw new Error("Stripe口座登録を完了してください。")
+  const account = await getAccountStatus(provider.stripe_account_id)
+  if (!account.payouts_enabled) throw new Error("Stripe口座への振込がまだ有効になっていません。")
+  const pendingResult = await db.from("payouts").select("*").eq("provider_id", provider.id).eq("status", "pending").maybeSingle()
+  let payout = pendingResult.data
+  if (pendingResult.error) throw new Error("振込申請を確認できませんでした。")
+  if (!payout) {
+    const balance = await getBalance(provider.stripe_account_id)
+    const available = balance.available.find((entry) => entry.currency === "jpy")?.amount ?? 0
+    if (!Number.isSafeInteger(available) || available <= 0) throw new Error("振込可能な残高がありません。")
+    const result = await db.from("payouts").insert({ provider_id: provider.id, amount: available }).select("*").single()
+    if (result.error) {
+      const retry = await db.from("payouts").select("*").eq("provider_id", provider.id).eq("status", "pending").maybeSingle()
+      if (retry.error || !retry.data) throw new Error("振込申請を準備できませんでした。")
+      payout = retry.data
+    } else payout = result.data
+  }
+  if (payout.stripe_payout_id) return
+  requireSafeRetry(payout.stripe_attempted_at)
+  const { error: attemptError } = await db.from("payouts").update({ stripe_attempted_at: new Date().toISOString() }).eq("id", payout.id).is("stripe_attempted_at", null).eq("status", "pending")
+  if (attemptError) throw new Error("振込申請を準備できませんでした。")
+  const result = await createPayout(provider.stripe_account_id, payout.amount, payout.id)
+  const { error: saveError } = await db.from("payouts").update({ stripe_payout_id: result.id }).eq("id", payout.id).eq("status", "pending")
+  if (saveError) throw new Error("振込申請の結果を保存できませんでした。")
+}
+
+export async function refreshStripeAccount() {
+  requirePaymentConfiguration()
+  const actor = await requireServerProfile()
+  const { data: provider, error } = await createServiceSupabaseClient().from("provider_profiles").select("stripe_account_id").eq("user_id", actor.id).maybeSingle()
+  if (error || !provider?.stripe_account_id) throw new Error("Stripeアカウントが見つかりません。")
+  return syncConnectAccount(provider.stripe_account_id)
 }
