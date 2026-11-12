@@ -1,6 +1,7 @@
 import "server-only"
 
 import { createServerClient } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import type { ProfileRecord, UserRole } from "@/lib/supabase"
 
@@ -31,6 +32,13 @@ export async function createServerSupabaseClient() {
       },
     },
   })
+}
+
+export function createServiceSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim()
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  if (!url || !key) throw new Error("決済機能を利用するにはサーバー設定が必要です。")
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
 export interface AuthenticatedProfile extends Omit<ProfileRecord, "role"> {
