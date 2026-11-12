@@ -5,7 +5,7 @@ import {
   getServerProfile,
 } from "@/lib/supabase-server"
 import { getListingById } from "@/lib/supabase-data"
-import { stripeUnavailableMessage } from "@/lib/stripe"
+import { stripePaymentEnabled, stripeUnavailableMessage } from "@/lib/stripe"
 export default async function Book({
   params,
 }: {
@@ -27,7 +27,7 @@ export default async function Book({
       <p className="mb-6">{listing.title}</p>
       <TradeRequestForm listing={listing} />
       <p className="mt-5 text-sm text-muted-foreground">
-        {stripeUnavailableMessage}
+        {stripePaymentEnabled ? "予約承認後に取引詳細からお支払いください。" : stripeUnavailableMessage}
       </p>
     </div>
   )

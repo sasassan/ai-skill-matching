@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { stripeUnavailableMessage } from "@/lib/stripe"
+import { stripePaymentEnabled, stripeUnavailableMessage } from "@/lib/stripe"
 export default function Guide() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-16">
@@ -22,7 +22,7 @@ export default function Guide() {
           </p>
         </section>
         <p className="rounded-xl bg-secondary p-5">
-          {stripeUnavailableMessage}
+          {stripePaymentEnabled ? "予約承認後または見積もり提示後にカードでお支払いください。" : stripeUnavailableMessage}
         </p>
         <Link
           href="/search"

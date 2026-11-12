@@ -1,4 +1,4 @@
-import { stripeUnavailableMessage } from "@/lib/stripe"
+import { stripePaymentEnabled, stripeUnavailableMessage } from "@/lib/stripe"
 export default function FAQ() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-16">
@@ -13,7 +13,7 @@ export default function FAQ() {
             "提供者にもなれますか？",
             "同じアカウントで提供者プロフィールを登録できます。",
           ],
-          ["支払いはできますか？", stripeUnavailableMessage],
+          ["支払いはできますか？", stripePaymentEnabled ? "予約の承認後または見積もり提示後、取引詳細からカードでお支払いいただけます。" : stripeUnavailableMessage],
           [
             "資格は確認されていますか？",
             "確認済みと表示される場合は、承認された確認記録に基づきます。",
