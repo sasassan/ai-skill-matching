@@ -77,7 +77,7 @@ export default async function OrderDetail({
       <p className="mt-5 leading-8 whitespace-pre-wrap">{order.description}</p>
       {order.specification && (
         <p className="mt-4 text-sm">
-          予算: {String(order.specification.budget || "未指定")} / 希望納期: {" "}
+          予算: {String(order.specification.budget || "未指定")} / 希望納期:{" "}
           {String(order.specification.deadline || "未指定")}
         </p>
       )}
