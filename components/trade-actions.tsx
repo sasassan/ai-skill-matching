@@ -26,6 +26,7 @@ export function TradeActions({
       else await orderStatus(tradeId, status as OrderStatus)
       router.refresh()
     } catch (caught) {
+      router.refresh()
       setError(
         caught instanceof Error
           ? caught.message
