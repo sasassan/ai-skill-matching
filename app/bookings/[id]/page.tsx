@@ -3,6 +3,7 @@ import { MessageThread } from "@/components/message-thread"
 import { ReviewForm } from "@/components/review-form"
 import { StatusBadge } from "@/components/status-badge"
 import { TradeActions } from "@/components/trade-actions"
+import { PaymentForm, RetryTransfer } from "@/components/payment-form"
 import {
   getBookingById,
   getTradeMessages,
@@ -12,7 +13,7 @@ import {
   createServerSupabaseClient,
   getServerProfile,
 } from "@/lib/supabase-server"
-import { stripeUnavailableMessage } from "@/lib/stripe"
+import { stripePaymentEnabled, stripeUnavailableMessage } from "@/lib/stripe"
 import type { BookingStatus } from "@/lib/models"
 export default async function BookingDetail({
   params,
@@ -40,11 +41,15 @@ export default async function BookingDetail({
         : booking.customerId
     ),
   ])
+  const paymentResult = stripePaymentEnabled ? await db.from("payments").select("status,amount").eq("booking_id", id).maybeSingle() : null
+  if (paymentResult?.error) throw new Error("支払い状態を読み込めませんでした。")
+  const payment = paymentResult?.data
   const options: { status: BookingStatus; label: string }[] = []
   if (booking.status === "requested" && booking.providerUserId === user.id)
     options.push({ status: "accepted", label: "予約を承認" })
   if (
     ["requested", "accepted"].includes(booking.status) &&
+    (!payment || ["failed", "refunded"].includes(payment.status)) &&
     new Date(booking.scheduledStart).getTime() > Date.now()
   )
     options.push({
@@ -76,9 +81,13 @@ export default async function BookingDetail({
       <p className="mt-2 text-sm text-muted-foreground">
         {booking.placeNote || "場所は取引相手とご確認ください。"}
       </p>
-      <p className="mt-3 text-sm text-muted-foreground">
-        {stripeUnavailableMessage}
-      </p>
+      {!stripePaymentEnabled ? <p className="mt-3 text-sm text-muted-foreground">{stripeUnavailableMessage}</p> : <>
+        {booking.amount != null && <p className="mt-3">料金：¥{booking.amount.toLocaleString()}</p>}
+        {payment && <p className="mt-3 text-sm">支払い状態：{payment.status === "pending" ? "処理待ち" : payment.status === "captured" ? "支払い済み・サービス完了待ち" : payment.status === "transferred" ? "提供者へ送金済み" : payment.status}</p>}
+        {user.id === booking.customerId && booking.status === "accepted" && (!payment || payment.status === "pending") && <PaymentForm type="booking" tradeId={id} publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!} />}
+        {["completed", "reviewed"].includes(booking.status) && payment && ["captured", "transferring"].includes(payment.status) && <RetryTransfer type="booking" tradeId={id} />}
+        {payment && !["failed", "refunded"].includes(payment.status) && !["completed", "reviewed"].includes(booking.status) && <p className="mt-3 text-sm">支払い手続き後のキャンセル・返金は管理者にお問い合わせください。</p>}
+      </>}
       {query.message_failed && (
         <p role="alert" className="mt-3 text-destructive">
           予約は作成されましたが、メッセージを送信できませんでした。下のフォームから再送してください。
